@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Orientation API Tester</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f2f5;
+            color: #1d1d1f;
+            padding: 20px;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            max-width: 400px;
+            width: 100%;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        h2 {
+            text-align: center;
+            margin-top: 0;
+            font-size: 1.4rem;
+        }
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 14px 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            color: #fff;
+        }
+        button:active {
+            opacity: 0.8;
+        }
+        .btn-landscape { background-color: #d97706; }
+        .btn-portrait { background-color: #2563eb; }
+        .btn-unlock { background-color: #10b981; }
+        
+        #log-console {
+            background: #1e293b;
+            color: #34d399;
+            padding: 12px;
+            border-radius: 8px;
+            font-family: "Courier New", Courier, monospace;
+            font-size: 12px;
+            height: 150px;
+            overflow-y: auto;
+            word-wrap: break-word;
+            line-height: 1.4;
+        }
+        .log-sent { color: #93c5fd; }
+        .log-recv { color: #fcd34d; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Screen Orientation Tester</h2>
+    
+    <div class="button-group">
+        <button class="btn-landscape" onclick="sendCommand({ action: 'orientation-lock', mode: 'landscape' })">
+            Lock to Landscape
+        </button>
+        <button class="btn-portrait" onclick="sendCommand({ action: 'orientation-lock', mode: 'portrait' })">
+            Lock to Portrait
+        </button>
+        <button class="btn-unlock" onclick="sendCommand({ action: 'orientation-unlock' })">
+            Unlock (Auto-Rotate)
+        </button>
+    </div>
+
+    <h4>Command & Event Log:</h4>
+    <div id="log-console">Awaiting events...</div>
+</div>
+
+<script>
+    const logConsole = document.getElementById('log-console');
+
+    function logMessage(text, type) {
+        const time = new Date().toLocaleTimeString();
+        const colorClass = type === 'sent' ? 'log-sent' : 'log-recv';
+        logConsole.innerHTML = `<span class="${colorClass}">[${time}] ${text}</span><br>` + logConsole.innerHTML;
+    }
+
+    // 1. Sending commands to the Native Wrapper
+    function sendCommand(payload) {
+        const message = JSON.stringify(payload);
+        if (window.top && window.top.postMessage) {
+            window.top.postMessage(message, '*');
+        }
+        logMessage(`> Sent: ${payload.action}`, 'sent');
+    }
+
+    // 2. Receiving events from the Native Wrapper (e.g., when the screen is rotated)
+    window.addEventListener('message', function (e) {
+        try {
+            const payload = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+            if (payload.event) {
+                logMessage(`< Received: ${payload.event} (${JSON.stringify(payload.data)})`, 'recv');
+            }
+        } catch (err) {}
+    });
+</script>
+
+</body>
+</html>

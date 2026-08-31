@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Core System API Tester</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f1f5f9; color: #0f172a; padding: 15px; margin: 0;
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .container {
+            max-width: 450px; width: 100%; background: #fff; padding: 20px;
+            border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+        h2 { text-align: center; margin-top: 0; font-size: 1.5rem; color: #1e293b; }
+        .section-title {
+            font-size: 12px; text-transform: uppercase; letter-spacing: 1px;
+            color: #64748b; margin: 20px 0 10px; font-weight: bold; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px;
+        }
+        .btn-group { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; }
+        button {
+            flex: 1 1 calc(50% - 8px); padding: 10px; border: none; border-radius: 6px;
+            font-size: 13px; font-weight: 600; cursor: pointer; color: white; transition: opacity 0.2s;
+        }
+        button:active { opacity: 0.8; }
+        
+        .btn-ui { background-color: #3b82f6; }
+        .btn-hw { background-color: #f59e0b; }
+        .btn-nav { background-color: #ef4444; }
+        .btn-store { background-color: #10b981; }
+
+        input.form-input {
+            width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #cbd5e1;
+            border-radius: 6px; font-size: 13px; box-sizing: border-box;
+        }
+        
+        #log-console {
+            background: #0f172a; color: #34d399; padding: 12px; border-radius: 8px;
+            font-family: "Courier New", Courier, monospace; font-size: 11px; 
+            height: 180px; overflow-y: auto; line-height: 1.5; word-wrap: break-word;
+        }
+        .log-sent { color: #93c5fd; }
+        .log-sys { color: #fde047; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Core System Tester</h2>
+    
+    <!-- UI & UX Controls -->
+    <div class="section-title">UI & UX Controls</div>
+    <div class="btn-group">
+        <button class="btn-ui" onclick="testLoader()">⏳ Show Loader (3s)</button>
+        <button class="btn-ui" onclick="sendSysCommand('sys_reload')">🔄 Hard Reload</button>
+    </div>
+
+    <!-- Hardware & Navigation -->
+    <div class="section-title">Hardware & Navigation</div>
+    <div class="btn-group">
+        <button class="btn-hw" onclick="sendSysCommand('sys_vibrate', { duration: 100 })">📳 Vibrate (100ms)</button>
+        <button class="btn-nav" onclick="sendSysCommand('sys_open_browser', { url: 'https://google.com' })">🌐 External Browser</button>
+        <button class="btn-nav" onclick="sendSysCommand('sys_exit')">❌ Exit App</button>
+    </div>
+
+    <!-- Secure Native Storage -->
+    <div class="section-title">Secure Native Storage</div>
+    <input type="text" id="storage-val" class="form-input" placeholder="Enter a value to save natively...">
+    <div class="btn-group">
+        <button class="btn-store" onclick="saveStorage()">💾 Save Data</button>
+        <button class="btn-store" onclick="sendSysCommand('sys_storage_load', { key: 'test_data' })">📥 Load Data</button>
+        <button class="btn-store" style="background-color: #64748b;" onclick="sendSysCommand('sys_storage_remove', { key: 'test_data' })">🗑️ Delete Data</button>
+    </div>
+
+    <!-- Live Event Monitor -->
+    <div class="section-title">Event Console</div>
+    <div id="log-console">Awaiting system events...</div>
+</div>
+
+<script>
+    const logBox = document.getElementById('log-console');
+
+    // Utility to write logs to the UI
+    function logMsg(msg, type = 'recv') {
+        const time = new Date().toLocaleTimeString();
+        let colorClass = '';
+        if (type === 'sent') colorClass = 'log-sent';
+        if (type === 'sys') colorClass = 'log-sys';
+        
+        logBox.innerHTML = `<span class="${colorClass}">[${time}] ${msg}</span><br>` + logBox.innerHTML;
+    }
+
+    // 1. DISPATCH SYSTEM COMMANDS (WEB -> NATIVE)
+    function sendSysCommand(actionName, extraParams = {}) {
+        const payload = { action: actionName, ...extraParams };
+        
+        if (window.top && window.top.postMessage) {
+            window.top.postMessage(JSON.stringify(payload), '*');
+            logMsg(`> Sent: ${actionName}`, 'sent');
+        } else {
+            logMsg(`! Error: window.top.postMessage not available`, 'sys');
+        }
+    }
+
+    // Custom flow to test loader to avoid permanent locking
+    function testLoader() {
+        sendSysCommand('sys_loader_show');
+        setTimeout(() => {
+            sendSysCommand('sys_loader_hide');
+        }, 3000);
+    }
+
+    // Custom flow to save input data to Native Storage
+    function saveStorage() {
+        const val = document.getElementById('storage-val').value;
+        if (!val) return alert('Please enter a value first!');
+        
+        sendSysCommand('sys_storage_save', { 
+            key: 'test_data', 
+            value: val 
+        });
+    }
+
+    // 2. LISTEN FOR SYSTEM EVENTS (NATIVE -> WEB)
+    window.addEventListener('message', function (e) {
+        try {
+            const payload = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+            const eventName = payload.event;
+            const eventData = payload.data;
+
+            if (!eventName) return;
+
+            switch (eventName) {
+                // Triggered when App goes background/foreground or initial load
+                case 'sys_lifecycle':
+                    logMsg(`&lt; Lifecycle State: ${eventData.state}`, 'sys');
+                    break;
+                
+                // Triggered when Android hardware back button is pressed
+                case 'sys_backbutton':
+                    logMsg(`&lt; Hardware Back Button Pressed!`, 'sys');
+                    // Developers can put history.back() here to navigate SPA routes
+                    break;
+
+                // Triggered after sys_storage_load is requested
+                case 'sys_storage_data':
+                    logMsg(`&lt; Storage Loaded: [${eventData.key}] = ${JSON.stringify(eventData.value)}`, 'sys');
+                    break;
+
+                // Triggered after sys_storage_save is successful
+                case 'sys_storage_saved':
+                    logMsg(`&lt; Storage Saved: [${eventData.key}]`, 'sys');
+                    break;
+
+                default:
+                    // Catch-all for WTA plugin events (AdMob, Camera, etc)
+                    if (eventName.startsWith('wta_') || eventName.includes('_')) {
+                        logMsg(`&lt; Plugin Event: ${eventName}`);
+                    }
+                    break;
+            }
+        } catch (err) {
+            // Ignore non-JSON postMessages from third-party scripts
+        }
+    });
+</script>
+
+</body>
+</html>

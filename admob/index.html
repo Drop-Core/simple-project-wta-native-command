@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Web To APK - API Playground</title>
+    <style>
+        :root {
+            --primary: #1a73e8;
+            --success: #34a853;
+            --warning: #fbbc04;
+            --danger: #ea4335;
+            --dark: #202124;
+            --bg: #ffffff;
+            --border: #dadce0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--dark);
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* --- TABS NAVIGATION --- */
+        .tabs-container {
+            display: flex;
+            background: #ffffff;
+            border-bottom: 1px solid var(--border);
+            overflow-x: auto;
+            white-space: nowrap;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            padding: 0 15px;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 15px 20px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: #5f6368;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: color 0.2s, border-color 0.2s;
+        }
+
+        .tab-btn:hover { color: var(--primary); }
+        
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom: 3px solid var(--primary);
+        }
+
+        .tabs-container::-webkit-scrollbar { display: none; }
+
+        /* --- MAIN CONTENT AREA --- */
+        .main-wrapper {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* --- PLUGIN VIEWS --- */
+        .plugin-view { display: none; animation: fadeIn 0.3s ease-in-out; }
+        .plugin-view.active { display: block; }
+        
+        @keyframes fadeIn { 
+            from { opacity: 0; transform: translateY(5px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+
+        .view-title {
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* --- COIN SCORE BOARD --- */
+        .score-board {
+            background-color: #e8f0fe;
+            border: 2px dashed var(--primary);
+            color: var(--primary);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .score-number {
+            font-size: 1.5rem;
+            color: var(--dark);
+        }
+
+        /* --- UI COMPONENTS --- */
+        .btn-group { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 10px; 
+            margin-bottom: 20px; 
+        }
+        
+        .btn-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .action-btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 14px 15px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+
+        .action-btn:active { transform: scale(0.97); opacity: 0.9; }
+        .action-btn.btn-success { background-color: var(--success); }
+        .action-btn.btn-warning { background-color: var(--warning); color: #000; }
+        .action-btn.btn-danger { background-color: var(--danger); }
+
+        /* --- TERMINAL --- */
+        .terminal-wrapper {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+        }
+
+        .terminal-header {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        #terminal {
+            background-color: #1e1e1e;
+            color: #4af626;
+            font-family: "Courier New", Courier, monospace;
+            padding: 15px;
+            border-radius: 8px;
+            height: 250px;
+            overflow-y: auto;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            word-wrap: break-word;
+        }
+
+        .log-time { color: #888; }
+        .log-event { color: #56b6c2; font-weight: bold; }
+        .log-data { color: #e5c07b; }
+        .log-sent { color: #c678dd; font-weight: bold; }
+
+        /* --- CODE MODAL OVERLAY --- */
+        .code-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            backdrop-filter: blur(2px);
+        }
+
+        .code-modal-overlay.active {
+            display: flex;
+            animation: fadeIn 0.2s;
+        }
+
+        .code-modal-content {
+            background: #ffffff;
+            width: 100%;
+            max-width: 850px;
+            max-height: 90vh;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .code-modal-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8f9fa;
+        }
+
+        .code-modal-title { font-size: 1.1rem; font-weight: bold; margin: 0; color: var(--dark); }
+        .code-modal-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #5f6368; padding: 0; line-height: 1; }
+        
+        .code-modal-body {
+            padding: 0;
+            overflow-y: auto;
+            flex: 1;
+            background: #1e1e1e;
+        }
+
+        .code-modal-body pre {
+            margin: 0;
+            padding: 20px;
+            color: #d4d4d4;
+            font-family: "Courier New", Courier, monospace;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        /* --- LAYOUT DESKTOP --- */
+        @media (min-width: 768px) {
+            .btn-group { flex-direction: row; }
+            .btn-grid { grid-template-columns: repeat(4, 1fr); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="tabs-container">
+        <button class="tab-btn active" onclick="switchTab('view-admob', this)">📱 AdMob Adverts</button>
+    </div>
+
+    <div class="main-wrapper">
+
+        
+        <!-- 1. ADMOB VIEW  -->
+        <div id="view-admob" class="plugin-view active">
+            <h2 class="view-title">AdMob Integration</h2>
+            
+            <!-- COIN SCORE BOARD -->
+            <div class="score-board">
+                🪙 Coins: <span id="coin-score" class="score-number">0</span>
+            </div>
+
+            <!-- BANNER CONTROLS -->
+            <div style="margin-bottom: 10px; font-weight: 500;">Banner Ads (Auto-Loaded)</div>
+            <div class="btn-grid">
+                <button class="action-btn btn-warning" onclick="sendToNative('hide-banner')">Hide</button>
+                <button class="action-btn btn-success" onclick="sendToNative('show-banner')">Show</button>
+                <button class="action-btn btn-danger" onclick="sendToNative('remove-banner')">Remove (Kill)</button>
+                <button class="action-btn" onclick="sendToNative('load-show-banner')">Re-Create</button>
+            </div>
+            
+            <!-- INTERSTITIAL CONTROLS -->
+            <div style="margin-bottom: 10px; font-weight: 500; margin-top: 10px;">Interstitial Ads</div>
+            <div class="btn-group">
+                <button class="action-btn" onclick="sendToNative('load-interstitial')">Load Interstitial</button>
+                <button class="action-btn btn-success" onclick="sendToNative('show-interstitial')">Show Interstitial</button>
+            </div>
+
+            <!-- REWARDED CONTROLS -->
+            <div style="margin-bottom: 10px; font-weight: 500;">Rewarded Video Ads</div>
+            <div class="btn-group">
+                <button class="action-btn" onclick="sendToNative('load-rewarded')">Load Rewarded</button>
+                <button class="action-btn btn-success" onclick="sendToNative('show-rewarded')">Show Rewarded</button>
+            </div>
+        </div>
+
+        <!-- PERSISTENT TERMINAL -->
+        <div class="terminal-wrapper">
+            <h3 class="terminal-header">🖥️ Event Terminal</h3>
+            <div id="terminal">
+                <div><span class="log-time">[System]</span> Terminal Ready. Listening to postMessage events...</div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- COIN SYSTEM LOGIC  ---
+        let userCoins = parseInt(localStorage.getItem('playground_coins')) || 0;
+        let isRewarded = false; 
+
+
+        function updateCoinUI() {
+            const coinText = document.getElementById('coin-score');
+            if (coinText) coinText.innerText = userCoins;
+        }
+
+        updateCoinUI();
+
+        function grantReward(amount) {
+            userCoins += amount;
+            localStorage.setItem('playground_coins', userCoins);
+            updateCoinUI();
+            
+            setTimeout(() => {
+                alert(`🎉 Congratulations! You earned ${amount} Coins!`);
+            }, 300); 
+        }
+
+
+
+        // --- COMMUNICATION LOGIC ---
+        function sendToNative(actionName, extraData = {}) {
+            const payload = Object.assign({ action: actionName }, extraData);
+            window.top.postMessage(JSON.stringify(payload), '*');
+            logTerminal('SEND', actionName, extraData);
+        }
+
+        window.addEventListener('message', function(e) {
+            if (!e.data) return;
+            let payload;
+            try {
+                payload = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+            } catch (err) {
+                return; 
+            }
+
+            if (payload.event) {
+                logTerminal('RECEIVE', payload.event, payload.data || {});
+
+                // LISTENING FOR REWARDED EVENTS
+                if (payload.event === 'rewarded_earned') {
+                    isRewarded = true;
+                }
+
+                if (payload.event === 'rewarded_dismissed') {
+                    if (isRewarded) {
+                        grantReward(100);
+                    }
+                    isRewarded = false;
+                }
+            }
+        });
+
+        // --- LOGGER UTILITY ---
+        function logTerminal(type, eventName, dataObj) {
+            const terminal = document.getElementById('terminal');
+            const time = new Date().toLocaleTimeString([], { hour12: false });
+            const dataString = dataObj && Object.keys(dataObj).length > 0 ? JSON.stringify(dataObj) : '{}';
+            
+            let logLine = '';
+            if (type === 'SEND') {
+                logLine = `<div><span class="log-time">[${time}]</span> <span class="log-sent">-> NATIVE:</span> ${eventName} <span class="log-data">${dataString}</span></div>`;
+            } else {
+                logLine = `<div><span class="log-time">[${time}]</span> <span class="log-event"><- WEB:</span> ${eventName} <span class="log-data">${dataString}</span></div>`;
+            }
+
+            terminal.innerHTML += logLine;
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+    </script>
+</body>
+</html>

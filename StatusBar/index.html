@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Status Bar API Tester</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            padding: 20px;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            max-width: 400px;
+            width: 100%;
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        h2 {
+            text-align: center;
+            margin-top: 0;
+            color: #222;
+        }
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 12px 15px;
+            border: none;
+            border-radius: 8px;
+            background-color: #007bff;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .btn-danger { background-color: #dc3545; }
+        .btn-danger:hover { background-color: #a71d2a; }
+        .btn-success { background-color: #28a745; }
+        .btn-success:hover { background-color: #1e7e34; }
+        .btn-dark { background-color: #343a40; }
+        .btn-dark:hover { background-color: #1d2124; }
+        
+        #log-console {
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            min-height: 80px;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Status Bar API Tester</h2>
+    
+    <div class="button-group">
+        <button class="btn-danger" onclick="sendCommand({ action: 'statusbar-hide' })">Hide Status Bar</button>
+        <button class="btn-success" onclick="sendCommand({ action: 'statusbar-show' })">Show Status Bar</button>
+    </div>
+
+    <div class="button-group">
+        <button class="btn-dark" onclick="sendCommand({ action: 'statusbar-style', style: 'light' })">Text Style: Light</button>
+        <button class="btn-dark" onclick="sendCommand({ action: 'statusbar-style', style: 'default' })">Text Style: Dark</button>
+    </div>
+
+    <h4>Command Log:</h4>
+    <div id="log-console">Awaiting commands...</div>
+</div>
+
+<script>
+    function sendCommand(payload) {
+        const message = JSON.stringify(payload);
+        
+        // Send command to the Native App via postMessage
+        if (window.top && window.top.postMessage) {
+            window.top.postMessage(message, '*');
+        }
+
+        // Display the sent command in the UI log
+        const logConsole = document.getElementById('log-console');
+        logConsole.innerHTML = `> Sent: ${message}<br>` + logConsole.innerHTML;
+    }
+</script>
+
+</body>
+</html>

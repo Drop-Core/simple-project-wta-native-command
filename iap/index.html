@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Web To APK - IAP Playground</title>
+    <style>
+        :root {
+            --primary: #1a73e8;
+            --success: #34a853;
+            --warning: #fbbc04;
+            --danger: #ea4335;
+            --dark: #202124;
+            --bg: #ffffff;
+            --border: #dadce0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--dark);
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* --- TABS NAVIGATION --- */
+        .tabs-container {
+            display: flex;
+            background: #ffffff;
+            border-bottom: 1px solid var(--border);
+            overflow-x: auto;
+            white-space: nowrap;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            padding: 0 15px;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 15px 20px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: #5f6368;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom: 3px solid var(--primary);
+        }
+
+        .tabs-container::-webkit-scrollbar { display: none; }
+
+        /* --- MAIN CONTENT AREA --- */
+        .main-wrapper {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .plugin-view { display: block; animation: fadeIn 0.3s ease-in-out; }
+        
+        @keyframes fadeIn { 
+            from { opacity: 0; transform: translateY(5px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+
+        .view-title {
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* --- COIN SCORE BOARD --- */
+        .score-board {
+            background-color: #e8f0fe;
+            border: 2px dashed var(--primary);
+            color: var(--primary);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .score-number {
+            font-size: 1.5rem;
+            color: var(--dark);
+        }
+
+        /* --- UI COMPONENTS --- */
+        .btn-group { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 10px; 
+            margin-bottom: 20px; 
+        }
+
+        .action-btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 14px 15px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+
+        .action-btn:active { transform: scale(0.97); opacity: 0.9; }
+        .action-btn.btn-success { background-color: var(--success); }
+        .action-btn.btn-warning { background-color: var(--warning); color: #000; }
+        .action-btn.btn-danger { background-color: var(--danger); }
+        
+        .input-group { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 10px; 
+            margin-bottom: 10px; 
+        }
+        
+        input[type="text"] { 
+            width: 100%; 
+            padding: 14px; 
+            border: 1px solid var(--border); 
+            border-radius: 8px; 
+            font-size: 1rem; 
+            box-sizing: border-box;
+            outline: none;
+        }
+        input[type="text"]:focus { border-color: var(--primary); }
+
+        /* --- TERMINAL --- */
+        .terminal-wrapper {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+        }
+
+        .terminal-header {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        #terminal {
+            background-color: #1e1e1e;
+            color: #4af626;
+            font-family: "Courier New", Courier, monospace;
+            padding: 15px;
+            border-radius: 8px;
+            height: 250px;
+            overflow-y: auto;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            word-wrap: break-word;
+        }
+
+        .log-time { color: #888; }
+        .log-event { color: #56b6c2; font-weight: bold; }
+        .log-data { color: #e5c07b; }
+        .log-sent { color: #c678dd; font-weight: bold; }
+
+        /* --- LAYOUT DESKTOP --- */
+        @media (min-width: 768px) {
+            .btn-group { flex-direction: row; }
+            .input-group { flex-direction: row; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="tabs-container">
+        <button class="tab-btn active">🛒 In-App Purchases</button>
+    </div>
+
+    <div class="main-wrapper">
+        
+        <!-- IAP VIEW -->
+        <div id="view-iap" class="plugin-view">
+            <h2 class="view-title">In-App Purchases (IAP)</h2>
+            <p style="font-size: 0.9rem; color: #555; margin-bottom: 20px;">Test your consumable and non-consumable product triggers.</p>
+
+            <!-- COIN SCORE BOARD -->
+            <div class="score-board">
+                🪙 Coins: <span id="coin-score" class="score-number">0</span>
+            </div>
+
+            <div class="input-group">
+                <input type="text" id="productId" placeholder="Enter Product ID (e.g. premium)">
+                <button class="action-btn btn-success" onclick="triggerPurchase()">Order / Buy</button>
+            </div>
+            
+            <div class="btn-group" style="margin-top: 15px;">
+                <button class="action-btn btn-warning" onclick="sendToNative('restore-iap')">Restore Purchases</button>
+            </div>
+        </div>
+
+        <!-- PERSISTENT TERMINAL -->
+        <div class="terminal-wrapper">
+            <h3 class="terminal-header">🖥️ Event Terminal</h3>
+            <div id="terminal">
+                <div><span class="log-time">[System]</span> Terminal Ready. Listening to postMessage events...</div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- COIN SYSTEM LOGIC ---
+        let userCoins = parseInt(localStorage.getItem('playground_coins')) || 0;
+
+        function updateCoinUI() {
+            const coinText = document.getElementById('coin-score');
+            if (coinText) coinText.innerText = userCoins;
+        }
+
+        updateCoinUI();
+
+        function grantReward(amount) {
+            userCoins += amount;
+            localStorage.setItem('playground_coins', userCoins);
+            updateCoinUI();
+            
+            setTimeout(() => {
+                alert(`🎉 Congratulations! You earned ${amount} Coins!`);
+            }, 300); 
+        }
+
+        // --- COMMUNICATION LOGIC ---
+        function sendToNative(actionName, extraData = {}) {
+            const payload = Object.assign({ action: actionName }, extraData);
+            window.top.postMessage(JSON.stringify(payload), '*');
+            logTerminal('SEND', actionName, extraData);
+        }
+
+        function triggerPurchase() {
+            const pId = document.getElementById('productId').value.trim();
+            if (!pId) {
+                alert("Please enter a valid Product ID first.");
+                return;
+            }
+            sendToNative('order-iap', { productId: pId });
+        }
+
+        window.addEventListener('message', function(e) {
+            if (!e.data) return;
+            let payload;
+            try {
+                payload = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+            } catch (err) {
+                return; 
+            }
+
+            if (payload.event) {
+                logTerminal('RECEIVE', payload.event, payload.data || {});
+
+                // --- LISTENING FOR IAP EVENTS ---
+                if (payload.event === 'iap_approved') {
+                    const boughtProductId = payload.data ? payload.data.productId : '';
+                    const token = payload.data ? payload.data.purchaseToken : '';
+                    
+                    if (boughtProductId === '100_coins' || boughtProductId === 'premium') {
+                        grantReward(100);
+                        console.log("Validating token on server:", token);
+                    } else {
+                        alert(`✅ Purchase successful for item: ${boughtProductId}`);
+                    }
+                }
+            }
+        });
+
+        // --- LOGGER UTILITY ---
+        function logTerminal(type, eventName, dataObj) {
+            const terminal = document.getElementById('terminal');
+            const time = new Date().toLocaleTimeString([], { hour12: false });
+            const dataString = dataObj && Object.keys(dataObj).length > 0 ? JSON.stringify(dataObj) : '{}';
+            
+            let logLine = '';
+            if (type === 'SEND') {
+                logLine = `<div><span class="log-time">[${time}]</span> <span class="log-sent">-> NATIVE:</span> ${eventName} <span class="log-data">${dataString}</span></div>`;
+            } else {
+                logLine = `<div><span class="log-time">[${time}]</span> <span class="log-event"><- WEB:</span> ${eventName} <span class="log-data">${dataString}</span></div>`;
+            }
+
+            terminal.innerHTML += logLine;
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Native Camera API Tester</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f1f5f9; color: #0f172a; padding: 20px; margin: 0;
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .container {
+            max-width: 400px; width: 100%; background: #fff; padding: 20px;
+            border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); text-align: center;
+        }
+        h2 { margin-top: 0; }
+        .btn-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        button {
+            flex: 1; padding: 12px; border: none; border-radius: 8px;
+            font-size: 14px; font-weight: bold; cursor: pointer; color: white;
+        }
+        .btn-cam { background-color: #ef4444; }
+        .btn-gal { background-color: #3b82f6; }
+        
+        #preview-box {
+            width: 100%; min-height: 200px; background: #e2e8f0; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center; margin-bottom: 15px;
+            overflow: hidden; border: 2px dashed #cbd5e1;
+        }
+        #preview-img { max-width: 100%; display: none; }
+        
+        #log-console {
+            background: #1e293b; color: #a7f3d0; padding: 10px; border-radius: 8px;
+            font-family: monospace; font-size: 11px; height: 100px; overflow-y: auto; text-align: left;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Camera API Tester</h2>
+    
+    <div id="preview-box">
+        <span id="preview-text">No Image Captured</span>
+        <img id="preview-img" alt="Captured Result" />
+    </div>
+
+    <div class="btn-group">
+        <button class="btn-cam" onclick="triggerCamera('camera-take')">📷 Open Camera</button>
+        <button class="btn-gal" onclick="triggerCamera('camera-pick')">🖼️ Open Gallery</button>
+    </div>
+
+    <div id="log-console">Waiting for actions...</div>
+</div>
+
+<script>
+    const logBox = document.getElementById('log-console');
+    const imgPreview = document.getElementById('preview-img');
+    const textPreview = document.getElementById('preview-text');
+
+    function logMsg(msg) {
+        logBox.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}<br>` + logBox.innerHTML;
+    }
+
+    // 1. Send command to Native App
+    function triggerCamera(actionType) {
+        let isSaveChecked = false;
+        
+        // Only ask to save if the user is actually taking a new picture
+        if (actionType === 'camera-take') {
+            isSaveChecked = confirm("Do you want to save this picture to the Device Gallery?");
+        }
+
+        if (window.top && window.top.postMessage) {
+            window.top.postMessage(JSON.stringify({ 
+                action: actionType,
+                quality: 60,       // Quality compression
+                width: 1000,       // Prevent app crash due to 4K resolution
+                height: 1000,
+                saveToGallery: isSaveChecked
+            }), '*');
+            logMsg(`Requesting: ${actionType} | Save: ${isSaveChecked}`);
+        }
+    }
+
+    // 2. Receive Base64 image from Native App
+    window.addEventListener('message', function (e) {
+        try {
+            const payload = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+            
+            if (payload.event === 'camera_success') {
+                logMsg(`Success! Loaded ${payload.data.image_base64.length} bytes.`);
+                // Display image directly in HTML
+                imgPreview.src = payload.data.image_base64;
+                imgPreview.style.display = 'block';
+                textPreview.style.display = 'none';
+            } 
+            else if (payload.event === 'camera_error') {
+                logMsg(`ERROR: ${payload.data.message}`);
+            }
+        } catch (err) {}
+    });
+</script>
+
+</body>
+</html>
